@@ -22,27 +22,20 @@ function initializeClock(id, endtime, fn) {
 
   function updateClock() {
     var t = getTimeRemaining(endtime);
-
+		var sclock = "";
 		if( t.days > 0 ) { 
-			daysSpan.innerHTML = t.days; 
-		} else { 
-			daysSpan.parentNode.removeChild(daysSpan); 
+			sclock = t.days + ' days '; 
 		}
-		if( t.hours > 0 ) { 
-			hoursSpan.innerHTML = ('0' + t.hours).slice(-2); 
-		} else { 
-			hoursSpan.parentNode.removeChild(hoursSpan); 
+		if( t.hours > 0 && t.total > 3600 ) {
+			sclock = sclock + ('0' + t.hours).slice(-2) + ':';
 		}
 		if( t.minutes > 0 && t.total > 60 ) { 
-			minutesSpan.innerHTML = ('0' + t.minutes).slice(-2); 
-		} else { 
-			minutesSpan.parentNode.removeChild(minutesSpan); 
-		}
-    if( t.seconds > 0 && t.total > 0) { 
-			secondsSpan.innerHTML = ('0' + t.seconds).slice(-2); 
-		} else { 
-			secondsSpan.parentNode.removeChild(secondsSpan); 
-		}
+			sclock = sclock + ('0' + t.minutes).slice(-2) + ':'; 
+		} 
+    if( t.seconds > 0 && t.total > 0 ) { 
+			sclock = sclock + ('0' + t.seconds).slice(-2);
+			if( 0 == t.minutes ) sclock = sclock + ' seconds';
+		}}
 
     if (t.total <= 0) {
 			if( fn ) fn();

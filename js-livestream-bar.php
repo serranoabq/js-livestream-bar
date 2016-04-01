@@ -9,6 +9,8 @@ new JS_LivestreamBar();
 
 class JS_LivestreamBar(){
 	
+	private $ls_status;
+	
 	function __construct(){
 		// Need to get settings: account_name
 		// Use customizer 
@@ -52,6 +54,7 @@ class JS_LivestreamBar(){
 	
 	function add_scripts(){
 		$ls_data = parse_livestream();
+		$this->ls_status = $ls_data[ 'streaming' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
 		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
 			'start_time'	=> $ls_data[ 'start_time' ];
@@ -59,61 +62,29 @@ class JS_LivestreamBar(){
 	}
 	
 	function script_footer(){
-		if( $ls_data[ 'streaming' ] ){
+		if( $this->ls_status ){
 			// Streaming
-			$text = sprintf( __( '<a href="%s">Livestream event is LIVE. Click here to watch.</a>', 'js_livestream' ), $ls_data[ 'url' ] );
+			$bartext = sprintf( __( '<a href="%s">Livestream event is LIVE. Click here to watch.</a>', 'js_livestream' ), $ls_data[ 'url' ] );
 		} elseif( $ls_data[ 'url' ] ) {
 			// Upcoming
-			$text = 'Livestream event starts in <span class="clock"><span class="</span>';
+			$bartext = __( 'Livestream event starts in <span class="clock"></span>', 'js_livestream' );
 		} else {
 			// Nothing
-			$text = '';
+			$bartext = '';
 		}
 	?>
 	<script>
 		(function($){
 			//js_livestream.start_time;
-			
-			var start_time = <?php echo $ls_data[ 'start_time' ]; ?>;
-			
-			function getTimeRemaining(endtime) {
-				var t = Date.parse(endtime) - Date.parse(new Date());
-				var seconds = Math.floor((t / 1000) % 60);
-				var minutes = Math.floor((t / 1000 / 60) % 60);
-				var hours = Math.floor((t / (1000 * 60 * 60)) % 24);
-				var days = Math.floor(t / (1000 * 60 * 60 * 24));
-				return {
-					'total': t,
-					'days': days,
-					'hours': hours,
-					'minutes': minutes,
-					'seconds': seconds
-				};
-			}
-			
-			function initializeClock(id, endtime) {
-				var clock = document.getElementById(id);
-				var daysSpan = clock.querySelector('.days');
-				var hoursSpan = clock.querySelector('.hours');
-				var minutesSpan = clock.querySelector('.minutes');
-				var secondsSpan = clock.querySelector('.seconds');
-
-				function updateClock() {
-					var t = getTimeRemaining(endtime);
-
-					daysSpan.innerHTML = t.days;
-					hoursSpan.innerHTML = ('0' + t.hours).slice(-2);
-					minutesSpan.innerHTML = ('0' + t.minutes).slice(-2);
-					secondsSpan.innerHTML = ('0' + t.seconds).slice(-2);
-
-					if (t.total <= 0) {
-						clearInterval(timeinterval);
-					}
+			var bar_text = <?php echo $bartext; ?>;
+			var streaming = <?php echo $this->ls_status; ?>;
+			if( bar_text ){
+				var start_time = <?php echo $ls_data[ 'start_time' ]; ?>;
+				$('body').prepend('<div>' + bar_text + '</div>' );
+				if( ! streaming ){
+					initializeClock( '.clock' , js_livestream.start_time );
 				}
-
-				updateClock();
-				var timeinterval = setInterval(updateClock, 1000);
-			}
+			} 
 		})(jQuery);
 		
 	</script>
@@ -147,7 +118,13 @@ class JS_LivestreamBar(){
 			$response = wp_remote_get( $url );
 			if( is_array( $resposnse ) ){
 				$data = json_decode( $response[ 'body' ] );
-				set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
+				if( $data->upcoming_events->data[0] ){
+					// Upcoming event, set the transient to 1 minute to capture the status change
+					set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
+				} else {
+					// No upcoming event, set the transient to 15 minutes
+					set_transient( 'JS_livestream_JSON', $data, 15 * MINUTE_IN_SECONDS );
+				}
 				return $data;
 			} else {
 				error_log( __CLASS__ . ':' __FUNCTION__ . ': Invalid response from ' . $url ); 
@@ -177,10 +154,10 @@ class JS_LivestreamBar(){
 			// Nothing on tap
 			$livestream = array(
 				'account_id' => $account_id,
-				'streaming' => false,
-				'url' => '',
-				'event_id' => '',
-				'start_time' => '',
+				'streaming' => null,
+				'url' => null,
+				'event_id' => null,
+				'start_time' => null,
 			);
 		}
 		return $livestream;
