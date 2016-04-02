@@ -15,10 +15,6 @@ function getTimeRemaining(endtime) {
 
 function initializeClock(id, endtime, fn) {
   var clock = document.getElementById(id);
-  var daysSpan = clock.querySelector('.days');
-  var hoursSpan = clock.querySelector('.hours');
-  var minutesSpan = clock.querySelector('.minutes');
-  var secondsSpan = clock.querySelector('.seconds');
 
   function updateClock() {
     var t = getTimeRemaining(endtime);
@@ -37,6 +33,8 @@ function initializeClock(id, endtime, fn) {
 			if( 0 == t.minutes ) sclock = sclock + ' seconds';
 		}}
 
+    clock.innerHTML = sclock;
+  
     if (t.total <= 0) {
 			if( fn ) fn();
       clearInterval(timeinterval);
