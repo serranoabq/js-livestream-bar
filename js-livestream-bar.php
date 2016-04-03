@@ -109,7 +109,7 @@ class JS_LivestreamBar {
 		// Get account name
 		$name = get_theme_mod( 'livestream_account' );
 		if( ! $name ) {
-			error_log( __CLASS__ . ':' __FUNCTION__ . ': No account name given' ); 
+			error_log( __CLASS__ . ':' .  __FUNCTION__ . ': No account name given' ); 
 			return false;
 		}
 		
@@ -131,7 +131,7 @@ class JS_LivestreamBar {
 				}
 				return $data;
 			} else {
-				error_log( __CLASS__ . ':' __FUNCTION__ . ': Invalid response from ' . $url ); 
+				error_log( __CLASS__ . ':' . __FUNCTION__ . ': Invalid response from ' . $url ); 
 				return false;
 			}
 		}
