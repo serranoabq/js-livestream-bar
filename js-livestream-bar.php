@@ -21,8 +21,8 @@ class JS_LivestreamBar {
 			add_action( 'admin_notices', array( $this, 'setting_admin_notice__error' ) );
 		}
 		
-		add_action( 'wp_enqueue_scripts', 'add_scripts' );
-		add_action( 'wp_footer', 'script_footer' );
+		add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
+		add_action( 'wp_footer', array( $this, 'script_footer' ) );
 		
 	}
 	
