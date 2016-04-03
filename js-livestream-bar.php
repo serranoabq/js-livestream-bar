@@ -10,6 +10,7 @@ new JS_LivestreamBar();
 class JS_LivestreamBar(){
 	
 	private $ls_status;
+  	private $ls_time;
 	
 	function __construct(){
 		// Need to get settings: account_name
@@ -55,6 +56,7 @@ class JS_LivestreamBar(){
 	function add_scripts(){
 		$ls_data = parse_livestream();
 		$this->ls_status = $ls_data[ 'streaming' ];
+      	$this->ls_time = $ls_data[ 'start_time' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
 		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
 			'start_time'	=> $ls_data[ 'start_time' ];
@@ -62,12 +64,16 @@ class JS_LivestreamBar(){
 	}
 	
 	function script_footer(){
+      $js_livestream_obj = array(
+        'live' => sprintf( __( '<a href="%s" class="jsls_link">Livestream event is LIVE. Click here to watch.</a>' , 'js_livestream' ), $ls_data[ 'url' ] ),
+        'upcoming' => __( 'Livestream event starts in <span id="clock"></span>' )
+      );
 		if( $this->ls_status ){
 			// Streaming
-			$bartext = sprintf( __( '<a href="%s">Livestream event is LIVE. Click here to watch.</a>', 'js_livestream' ), $ls_data[ 'url' ] );
+			$bartext = $js_livestream_obj[ 'live '];
 		} elseif( $ls_data[ 'url' ] ) {
 			// Upcoming
-			$bartext = __( 'Livestream event starts in <span class="clock"></span>', 'js_livestream' );
+			$bartext = $js_livestream_obj[ 'upcoming' ];
 		} else {
 			// Nothing
 			$bartext = '';
@@ -79,10 +85,10 @@ class JS_LivestreamBar(){
 			var bar_text = <?php echo $bartext; ?>;
 			var streaming = <?php echo $this->ls_status; ?>;
 			if( bar_text ){
-				var start_time = <?php echo $ls_data[ 'start_time' ]; ?>;
-				$('body').prepend('<div>' + bar_text + '</div>' );
+				var start_time = <?php echo $this->ls_time; ?>;
+				$('body').prepend('<div id="jsls_bar">' + bar_text + '</div>' );
 				if( ! streaming ){
-                  initializeClock( '.clock' , js_livestream.start_time, function(){ $('.clock').innerHTML = 'Live';} );
+                  initializeClock( '#clock' , js_livestream.start_time, function(){ $('#jsls_bar').innerHTML = <?php echo $js_livestream_obj[ 'live' ]; ?>; } );
 				}
 			} 
 		})(jQuery);
