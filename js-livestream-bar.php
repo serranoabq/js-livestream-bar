@@ -59,7 +59,7 @@ class JS_LivestreamBar {
       	$this->ls_time = $this->ls_data[ 'start_time' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
 		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
-			'start_time'	=> $ls_data[ 'start_time' ]
+			'start_time'	=> $this->ls_data[ 'start_time' ]
 		));
 	}
 	
@@ -88,7 +88,7 @@ class JS_LivestreamBar {
 				var start_time = <?php echo $this->ls_time; ?>;
 				$('body').prepend('<div id="jsls_bar">' + bar_text + '</div>' );
 				if( ! streaming ){
-                  initializeClock( '#clock' , js_livestream.start_time, function(){ $('#jsls_bar').innerHTML = <?php echo $js_livestream_obj[ 'live' ]; ?>; } );
+                  initializeClock( 'clock' , js_livestream.start_time, function(){ $('#jsls_bar').innerHTML = <?php echo $js_livestream_obj[ 'live' ]; ?>; } );
 				}
 			} 
 		})(jQuery);
