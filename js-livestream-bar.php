@@ -53,7 +53,7 @@ class JS_LivestreamBar {
 	}
 	
 	function add_scripts(){
-		$ls_data = parse_livestream();
+		$ls_data = $this->parse_livestream();
 		$this->ls_status = $ls_data[ 'streaming' ];
       	$this->ls_time = $ls_data[ 'start_time' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
