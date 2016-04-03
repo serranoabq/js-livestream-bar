@@ -82,7 +82,7 @@ class JS_LivestreamBar(){
 				var start_time = <?php echo $ls_data[ 'start_time' ]; ?>;
 				$('body').prepend('<div>' + bar_text + '</div>' );
 				if( ! streaming ){
-					initializeClock( '.clock' , js_livestream.start_time );
+                  initializeClock( '.clock' , js_livestream.start_time, function(){ $('.clock').innerHTML = 'Live';} );
 				}
 			} 
 		})(jQuery);
