@@ -10,7 +10,8 @@ class JS_LivestreamBar {
 	
 	private $ls_status;
   	private $ls_time;
-	
+	private $ls_data;
+  
 	function __construct(){
 		// Need to get settings: account_name
 		// Use customizer 
@@ -53,9 +54,9 @@ class JS_LivestreamBar {
 	}
 	
 	function add_scripts(){
-		$ls_data = $this->parse_livestream();
-		$this->ls_status = $ls_data[ 'streaming' ];
-      	$this->ls_time = $ls_data[ 'start_time' ];
+		$this->ls_data = $this->parse_livestream();
+		$this->ls_status = $this->ls_data[ 'streaming' ];
+      	$this->ls_time = $this->ls_data[ 'start_time' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
 		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
 			'start_time'	=> $ls_data[ 'start_time' ]
@@ -64,13 +65,13 @@ class JS_LivestreamBar {
 	
 	function script_footer(){
       $js_livestream_obj = array(
-        'live' => sprintf( __( '<a href="%s" class="jsls_link">Livestream event is LIVE. Click here to watch.</a>' , 'js_livestream' ), $ls_data[ 'url' ] ),
+        'live' => sprintf( __( '<a href="%s" class="jsls_link">Livestream event is LIVE. Click here to watch.</a>' , 'js_livestream' ), $this->ls_data[ 'url' ] ),
         'upcoming' => __( 'Livestream event starts in <span id="clock"></span>' )
       );
 		if( $this->ls_status ){
 			// Streaming
 			$bartext = $js_livestream_obj[ 'live '];
-		} elseif( $ls_data[ 'url' ] ) {
+		} elseif( $this->ls_data[ 'url' ] ) {
 			// Upcoming
 			$bartext = $js_livestream_obj[ 'upcoming' ];
 		} else {
