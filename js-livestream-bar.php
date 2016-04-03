@@ -116,7 +116,7 @@ class JS_LivestreamBar {
 		
 		// Use transients for cache control
 		$transient = get_transient( 'JS_livestream_JSON' );
-		if( ! empty( $transient ) ){
+		if( ! empty( $transient ) && !is_user_logged_in()){
 			return $transient;
 		} else {
 			$url = "http://api.new.livestream.com/accounts/$name";
