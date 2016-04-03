@@ -121,7 +121,7 @@ class JS_LivestreamBar {
 		} else {
 			$url = "http://api.new.livestream.com/accounts/$name";
 			$response = wp_remote_get( $url );
-			if( is_array( $resposnse ) ){
+			if( is_array( $response ) ){
 				$data = json_decode( $response[ 'body' ] );
 				if( $data->upcoming_events->data[0] ){
 					// Upcoming event, set the transient to 1 minute to capture the status change
