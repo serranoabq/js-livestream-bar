@@ -5,7 +5,6 @@
 	Version: 1.0.0
 	Author: Justin R. Serrano
 */
-new JS_LivestreamBar();
 
 class JS_LivestreamBar(){
 	
@@ -29,7 +28,7 @@ class JS_LivestreamBar(){
 	
 	function setting_admin_notice__error() {
 		$class = 'notice notice-error';
-		$message = sprintf( __( 'The Livestream account name must be set in the <a href="%s">customizer</a>.', 'js_livestream' ), admin_url( 'customize.php?autofocus[control]=livestream_account' );
+		$message = sprintf( __( 'The Livestream account name must be set in the <a href="%s">customizer</a>.', 'js_livestream' ), admin_url( 'customize.php?autofocus[control]=livestream_account' ) );
 
 		printf( '<div class="%1$s"><p>%2$s</p></div>', $class, $message ); 
 	}
@@ -95,9 +94,8 @@ class JS_LivestreamBar(){
 		
 	</script>
 <?php 		
-		}
-
 	}
+
 	
 	function shortcode(){
 		// Get livestream data
@@ -266,3 +264,4 @@ class JS_LivestreamBar(){
 	}
 
 }
+new JS_LivestreamBar();
