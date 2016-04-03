@@ -123,7 +123,7 @@ class JS_LivestreamBar {
 			$response = wp_remote_get( $url );
 			if( is_array( $response ) ){
 				$data = json_decode( $response[ 'body' ] );
-              	error_log(__FUNCTION__ . ':'. count($data->upcoming_events->data );
+              	error_log(__FUNCTION__ . ':'. count($data->upcoming_events->data ) );
 				if( $data->upcoming_events->data[0] ){
 					// Upcoming event, set the transient to 1 minute to capture the status change
 					set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
