@@ -70,7 +70,7 @@ class JS_LivestreamBar {
       );
 		if( $this->ls_status ){
 			// Streaming
-			$bartext = $js_livestream_obj[ 'live '];
+			$bartext = $js_livestream_obj[ 'live'];
 		} elseif( $this->ls_data[ 'url' ] ) {
 			// Upcoming
 			$bartext = $js_livestream_obj[ 'upcoming' ];
