@@ -59,7 +59,7 @@ class JS_LivestreamBar {
       	$this->ls_time = $this->ls_data[ 'start_time' ];
 		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
 		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
-			'start_time'	=> $this->ls_data[ 'start_time' ]
+			'start_time'	=> $this->ls_time
 		));
 	}
 	
@@ -123,8 +123,8 @@ class JS_LivestreamBar {
 			$response = wp_remote_get( $url );
 			if( is_array( $response ) ){
 				$data = json_decode( $response[ 'body' ] );
-              	error_log(__FUNCTION__ . ':'. count($data->upcoming_events->data ) );
-				if( $data->upcoming_events->data[0] ){
+              	
+				if( count( $data->upcoming_events->data ) > 0 ){
 					// Upcoming event, set the transient to 1 minute to capture the status change
 					set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
 				} else {
@@ -143,7 +143,7 @@ class JS_LivestreamBar {
 	function parse_livestream(){
 		$data  = $this->fetch_livestream_data();
 		$account_id = $data->id;
-		if( $data->upcoming_events->data[0] ){
+		if( count( $data->upcoming_events->data ) > 0 ){
 			$event_id = $data->upcoming_events->data[0]->id;
 			// There's an upcoming event
 			$livestream = array(
@@ -153,7 +153,7 @@ class JS_LivestreamBar {
 				'event_id' => $event_id,
 				'start_time' => $data->upcoming_events->data[0]->start_time,
 			);
-			if ( $data->upcoming_events->data[0]->in_progress ){
+			if( $data->upcoming_events->data[0]->in_progress ){
 				$livestream[ 'streaming' ] = true;
 			}
 		} else {
