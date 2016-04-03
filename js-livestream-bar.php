@@ -6,7 +6,7 @@
 	Author: Justin R. Serrano
 */
 
-class JS_LivestreamBar(){
+class JS_LivestreamBar {
 	
 	private $ls_status;
   	private $ls_time;
