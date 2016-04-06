@@ -2,28 +2,28 @@
 /*
 	Plugin Name: Livestream Notification Bar
 	Description: Plugin to create a notification bar at the top of your site to notify when your Livestream is live
-	Version: 1.0.0
+	Version: 1.1
 	Author: Justin R. Serrano
 */
 
 class JS_LivestreamBar {
 	
 	private $ls_status;
-  	private $ls_time;
+	private $ls_time;
 	private $ls_data;
-  
+	private $account_name;
+	private $debug_enabled = false;
+	
 	function __construct(){
-		// Need to get settings: account_name
-		// Use customizer 
+		// Use Custommizer to set settings
 		add_action( 'customize_register', array( $this, 'customize_register' ), 11 );
-		$account_name = get_theme_mod( 'livestream_account' );
+		$this->account_name = get_theme_mod( 'livestream_account' );
 
-		if( ! $account_name ) {
+		if( ! $this->account_name ) {
 			add_action( 'admin_notices', array( $this, 'setting_admin_notice__error' ) );
 		}
 		
 		add_action( 'wp_enqueue_scripts', array( $this, 'add_scripts' ) );
-		add_action( 'wp_footer', array( $this, 'script_footer' ) );
 		
 	}
 	
@@ -37,12 +37,15 @@ class JS_LivestreamBar {
 	// Customizer settings
 	function customize_register( $wp_customize ){
 		
+		// Add new section
 		$this->customize_createSection( $wp_customize, array(
 			'id' => 'livestream',
 			'title' => _x( 'Livestream Notification Bar', 'Customizer section title', 'js_livestream' ),
 			'description' => _x( 'Settings for Livestream notification bar', 'Customizer section description', 'js_livestream' ),
 		) );
 		
+		// Add controls
+		// Username
 		$this->customize_createSetting( $wp_customize, array(
 			'id' => 'livestream_account',
 			'label' => _x( 'Livestream username', 'Customizer setting', 'js_livestream' ),
@@ -51,58 +54,97 @@ class JS_LivestreamBar {
 			'section' => 'livestream',
 		) );
 		
+		// Location
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_location',
+			'label' => _x( 'Location', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'select',
+			'choices' => array(
+				'front' => 'Front Page',
+				'all' => 'Everywhere'
+			),
+			'description' => _x( 'Choose whether to display the notification bar on the front page only or everywhere.', 'Customizer setting description', 'js_livestream' ),
+			'default' => 'front',
+			'section' => 'livestream',
+		) );
+		
+		// Injection point
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_inject',
+			'label' => _x( 'DOM Element to inject into', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'text',
+			'description' => _x( 'Enter the CSS selector of the parent element the bar will be injected into (e.g. <code>body</code>, <code>#header</code>, <code>.top</code>).', 'Customizer setting description', 'js_livestream' ),
+			'default' => 'body',
+			'section' => 'livestream',
+		) );
+		
+		// Live link text
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_livelink',
+			'label' => _x( 'Link text', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'text',
+			'description' => _x( 'Enter the text to include in the link when the event is live', 'Customizer setting description', 'js_livestream' ),
+			'default' => __( 'Livestream event is LIVE. Click here to watch.' , 'js_livestream' ),
+			'section' => 'livestream',
+		) );
+		
+		// Upcoming text
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_upcomingtext',
+			'label' => _x( 'Upcoming  text', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'text',
+			'description' => _x( 'Enter the text to include bar when the event is scheduled. <code>{{CLOCK}}</code> indicates where the countdown will be placed', 'Customizer setting description', 'js_livestream' ),
+			'default' => __( 'Livestream starts in {{CLOCK}}' , 'js_livestream' ),
+			'section' => 'livestream',
+		) );
+		
+		// Custom CSS
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_css',
+			'label' => _x( 'Custom CSS', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'textarea',
+			'description' => _x( 'Enter any custom CSS to apply to the notification bar. The following ids are used: <code>jsls_bar</code>, <code>jsls_link</code>, and <code>jsls_clock</code>', 'Customizer setting description', 'js_livestream' ),
+			'default' => '',
+			'section' => 'livestream',
+		) );
+		
 	}
 	
 	function add_scripts(){
+		// Fetch and parse the data first
 		$this->ls_data = $this->parse_livestream();
-		$this->ls_status = $this->ls_data[ 'streaming' ];
-      	$this->ls_time = $this->ls_data[ 'start_time' ];
-		wp_enqueue_script( 'js_livestream_bar', plugin_dir_path(__FILE__) . '/countdown.js', array( 'jquery' ) );
-		wp_localize_script( 'js_livestream_bar', 'js_livestream', array(
-			'start_time'	=> $this->ls_time
-		));
-	}
-	
-	function script_footer(){
-      $js_livestream_obj = array(
-        'live' => sprintf( __( '<a href="%s" class="jsls_link">Livestream event is LIVE. Click here to watch.</a>' , 'js_livestream' ), $this->ls_data[ 'url' ] ),
-        'upcoming' => __( 'Livestream event starts in <span id="clock"></span>' )
-      );
-		if( $this->ls_status ){
-			// Streaming
-			$bartext = $js_livestream_obj[ 'live'];
-		} elseif( $this->ls_data[ 'url' ] ) {
-			// Upcoming
-			$bartext = $js_livestream_obj[ 'upcoming' ];
-		} else {
-			// Nothing
-			$bartext = '';
+		
+		$location = get_theme_mod( 'livestream_location' );
+		if( 'front' == $location && ! is_front_page() ) return;
+				
+		if( $this->ls_data ){
+			// If there's valid data, proceed
+			$this->ls_status = $this->ls_data[ 'streaming' ];
+			$this->ls_time   = $this->ls_data[ 'start_time' ];
+			
+			// Add scripts
+			wp_enqueue_script( 'jsls-script', plugins_url( 'jsls-script.js', __FILE__ ), array( 'jquery') );
+			
+			$jsls_data = array(
+				'live'     => sprintf( '<a href="%s" class="jsls_link">' . get_theme_mod( 'livestream_livelink' ) . '</a>', $this->ls_data[ 'url' ] ),
+				'upcoming' => str_replace( '{{CLOCK}}', '<span id="jsls_clock"></span>', get_theme_mod( 'livestream_upcomingtext' ) ),
+				'streaming' => $this->ls_status,
+				'start_time' => $this->ls_time,
+				'inject' => get_theme_mod( 'livestream_inject' ),
+			);
+			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
+			add_action( 'wp_footer', array( $this, 'style_footer' ) );
 		}
-	?>
-	<script>
-		(function($){
-			//js_livestream.start_time;
-			var bar_text = <?php echo $bartext; ?>;
-			var streaming = <?php echo $this->ls_status; ?>;
-			if( bar_text ){
-				var start_time = <?php echo $this->ls_time; ?>;
-				$('body').prepend('<div id="jsls_bar">' + bar_text + '</div>' );
-				if( ! streaming ){
-                  initializeClock( 'clock' , js_livestream.start_time, function(){ $('#jsls_bar').innerHTML = <?php echo $js_livestream_obj[ 'live' ]; ?>; } );
-				}
-			} 
-		})(jQuery);
-		
-	</script>
-<?php 		
 	}
-
 	
-	function shortcode(){
-		// Get livestream data
-		// Parse data to get status
-		// Generate code
-		
+	function style_footer(){
+		if( $this->ls_data ){
+			// There is a live or scheduled event
+			// Add custom CSS
+			if( get_theme_mod( 'livestream_css' ) ){
+				echo '<style>' . get_theme_mod( 'livestream_css' ) . '</style>';
+			}
+		}
 	}
 	
 	// Fetch data
@@ -110,67 +152,95 @@ class JS_LivestreamBar {
 		// Get account name
 		$name = get_theme_mod( 'livestream_account' );
 		if( ! $name ) {
-			error_log( __CLASS__ . ':' .  __FUNCTION__ . ': No account name given' ); 
+			$this->debug( __CLASS__ . ':' .  __FUNCTION__ . ': No account name given' ); 
 			return false;
 		}
 		
 		// Use transients for cache control
 		$transient = get_transient( 'JS_livestream_JSON' );
-		if( ! empty( $transient ) && !is_user_logged_in()){
+		if( ! empty( $transient ) && ! is_customize_preview() ){
+			
+			// Use transients to avoid excessive remote calls
 			return $transient;
+			
 		} else {
+			
+			// Build URL and fetch data
 			$url = "http://api.new.livestream.com/accounts/$name";
 			$response = wp_remote_get( $url );
+			
+			// Process the response
 			if( is_array( $response ) ){
-				$data = json_decode( $response[ 'body' ] );
-              	
-				if( count( $data->upcoming_events->data ) > 0 ){
-					// Upcoming event, set the transient to 1 minute to capture the status change
-					set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
+				
+				$data = json_decode( $response[ 'body' ] );    
+				
+				if( json_last_error() === JSON_ERROR_NONE ){
+					// Check for valid JSON
+					
+					if( count( $data->upcoming_events->data ) > 0 || is_customize_preview() ){
+						
+						// Upcoming event, set the transient to 1 minute to capture the status change
+						// Also used if user it's the customizer preview, in case the settings are getting changed
+						set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
+						
+					} else {
+						
+						// No upcoming event, set the transient to 15 minutes
+						set_transient( 'JS_livestream_JSON', $data, 15 * MINUTE_IN_SECONDS );
+						
+					}
+					return $data;
+					
 				} else {
-					// No upcoming event, set the transient to 15 minutes
-					set_transient( 'JS_livestream_JSON', $data, 15 * MINUTE_IN_SECONDS );
+					// Invalid JSON
+					
+					$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Invalid JSON response' );
+					return false;
 				}
-				return $data;
 			} else {
-				error_log( __CLASS__ . ':' . __FUNCTION__ . ': Invalid response from ' . $url ); 
+				// Invalid response
+				
+				$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Invalid response from ' . $url ); 
 				return false;
+				
 			}
 		}
 	}
 	
 	// Parse Livestream status data
+	// Returns an array object with the event information or FALSE if there is nothing scheduled or live
 	function parse_livestream(){
+		// Get the data
 		$data  = $this->fetch_livestream_data();
-		$account_id = $data->id;
+		
+		// Start parsing the data
+		if( ! $data ) return false;
+		
 		if( count( $data->upcoming_events->data ) > 0 ){
-			$event_id = $data->upcoming_events->data[0]->id;
 			// There's an upcoming event
-			$livestream = array(
+			
+			// Return account_id, streaming status, url, event_id, and start_time
+			$account_id = $data->id;
+			$event_id   = $data->upcoming_events->data[0]->id;
+			return array(
 				'account_id' => $account_id,
-				'streaming' => false,
-				'url' => "http://livestream.com/accounts/$account_id/events/$event_id",
-				'event_id' => $event_id,
+				'streaming'  =>  $data->upcoming_events->data[0]->in_progress,
+				'url'        => "http://livestream.com/accounts/$account_id/events/$event_id",
+				'event_id'   => $event_id,
 				'start_time' => $data->upcoming_events->data[0]->start_time,
 			);
-			if( $data->upcoming_events->data[0]->in_progress ){
-				$livestream[ 'streaming' ] = true;
-			}
+			
 		} else {
+			$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Nothing scheduled' ); 
+			
 			// Nothing on tap
-			$livestream = array(
-				'account_id' => $account_id,
-				'streaming' => null,
-				'url' => null,
-				'event_id' => null,
-				'start_time' => null,
-			);
+			return false;
+			
 		}
-		return $livestream;
 	}
 	
 	
-	// Customizer shortcuts
+	// Customizer shortcut for section creation
 	function customize_createSection( $wp_customize, $args ) {
 		$default_args = array(
 			'id' 	            => '', // required
@@ -190,7 +260,7 @@ class JS_LivestreamBar {
 		$wp_customize->add_section( $id, $args );
 	}
 
-	// Some Customizer shortcuts
+	// Customizer shortcut for setting creation
 	function customize_createSetting( $wp_customize, $args ) {
 		$default_args = array(
 			'id' 	              => '', // required
@@ -264,6 +334,13 @@ class JS_LivestreamBar {
 			$wp_customize->add_control( $id, $control_args );
 		}
 	}
-
+	
+	// Debug function
+	function debug( $msg ){
+		if( is_user_logged_in() && $this->debug_enabled ){
+			error_log( $msg );
+		}
+	}
+	
 }
 new JS_LivestreamBar();
