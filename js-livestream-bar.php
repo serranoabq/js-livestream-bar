@@ -108,6 +108,49 @@ class JS_LivestreamBar {
 			'section' => 'livestream',
 		) );
 		
+		// Cache time
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_unsched_cache',
+			'label' => _x( 'Unscheduled Cache Time', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'select',
+			'choices'=> array(
+				'1440' => '24 hours',
+				'720' => '12 hours',
+				'360' => '6 hours',
+				'60' => '1 hour',
+				'30' => '30 minutes',
+				'15' => '15 minutes',
+			),
+			'description' => _x( 'Choose the periodicity to flush the cache of the Livestream request if there is no event scheduled. If an event is scheduled', 'Customizer setting description', 'js_livestream' ),
+			'default' => '60',
+			'section' => 'livestream',
+		) );
+		
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_sched_cache',
+			'label' => _x( 'Scheduled Cache Time', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'select',
+			'choices'=> array(
+				'30' => '30 minutes',
+				'15' => '15 minutes',
+				'10' => '10 minutes',
+				'5' => '5 minutes',
+				'1' => '1 minutes',
+			),
+			'description' => _x( 'Choose the periodicity to flush the cache of the Livestream request if there is an event scheduled.', 'Customizer setting description', 'js_livestream' ),
+			'default' => '1',
+			'section' => 'livestream',
+		) );
+		
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_showupcoming',
+			'label' => _x( 'Show bar when upcoming', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'checkbox',
+			'description' => _x( 'Check to display the bar and countdown when an event is scheduled, but not live yet. ', 'Customizer setting description', 'js_livestream' ),
+			'default' => true,
+			'section' => 'livestream',
+		) );
+
 	}
 	
 	function add_scripts(){
@@ -131,6 +174,7 @@ class JS_LivestreamBar {
 				'streaming' => $this->ls_status,
 				'start_time' => $this->ls_time,
 				'inject' => get_theme_mod( 'livestream_inject' ),
+				'show_up' => get_theme_mod( 'livestream_showupcoming' ),
 			);
 			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
 			add_action( 'wp_footer', array( $this, 'style_footer' ) );
@@ -176,19 +220,11 @@ class JS_LivestreamBar {
 				
 				if( json_last_error() === JSON_ERROR_NONE ){
 					// Check for valid JSON
-					
+					$cache_time = intval( get_theme_mod( 'livestream_unsched_cache' ) );
 					if( count( $data->upcoming_events->data ) > 0 || is_customize_preview() ){
-						
-						// Upcoming event, set the transient to 1 minute to capture the status change
-						// Also used if user it's the customizer preview, in case the settings are getting changed
-						set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
-						
-					} else {
-						
-						// No upcoming event, set the transient to 15 minutes
-						set_transient( 'JS_livestream_JSON', $data, 15 * MINUTE_IN_SECONDS );
-						
+						$cache_time = intval( get_theme_mod( 'livestream_sched_cache' ) ); 
 					}
+					set_transient( 'JS_livestream_JSON', $data, $cache_time * MINUTE_IN_SECONDS );
 					return $data;
 					
 				} else {
