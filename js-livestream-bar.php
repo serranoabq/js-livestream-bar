@@ -2,7 +2,7 @@
 /*
 	Plugin Name: Livestream Notification Bar
 	Description: Plugin to create a notification bar at the top of your site to notify when your Livestream is live
-	Version: 1.1
+	Version: 1.1.1
 	Author: Justin R. Serrano
 */
 
@@ -110,34 +110,22 @@ class JS_LivestreamBar {
 		
 		// Cache time
 		$this->customize_createSetting( $wp_customize, array(
-			'id' => 'livestream_unsched_cache',
-			'label' => _x( 'Unscheduled Cache Time', 'Customizer setting label', 'js_livestream' ),
+			'id' => 'livestream_cache',
+			'label' => _x( 'Cache Longevity', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'select',
 			'choices'=> array(
-				'1440' => '24 hours',
+				'1440' => '1 day',
 				'720' => '12 hours',
 				'360' => '6 hours',
+				'120' => '2 hours',
 				'60' => '1 hour',
-				'30' => '30 minutes',
-				'15' => '15 minutes',
-			),
-			'description' => _x( 'Choose the periodicity to flush the cache of the Livestream request if there is no event scheduled. If an event is scheduled', 'Customizer setting description', 'js_livestream' ),
-			'default' => '60',
-			'section' => 'livestream',
-		) );
-		
-		$this->customize_createSetting( $wp_customize, array(
-			'id' => 'livestream_sched_cache',
-			'label' => _x( 'Scheduled Cache Time', 'Customizer setting label', 'js_livestream' ),
-			'type' => 'select',
-			'choices'=> array(
 				'30' => '30 minutes',
 				'15' => '15 minutes',
 				'10' => '10 minutes',
 				'5' => '5 minutes',
-				'1' => '1 minutes',
+				'1' => '1 minute',
 			),
-			'description' => _x( 'Choose the periodicity to flush the cache of the Livestream request if there is an event scheduled.', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Choose the longevity of the local cache of the Livestream request. Keep in mind that the shorter it is, the fresher the data.', 'Customizer setting description', 'js_livestream' ),
 			'default' => '1',
 			'section' => 'livestream',
 		) );
@@ -218,12 +206,11 @@ class JS_LivestreamBar {
 				
 				$data = json_decode( $response[ 'body' ] );    
 				
+				// Check for valid JSON
 				if( json_last_error() === JSON_ERROR_NONE ){
-					// Check for valid JSON
-					$cache_time = intval( get_theme_mod( 'livestream_unsched_cache' ) );
-					if( count( $data->upcoming_events->data ) > 0 || is_customize_preview() ){
-						$cache_time = intval( get_theme_mod( 'livestream_sched_cache' ) ); 
-					}
+					
+					// Cache the data. Note that even though it's cached, the Customizer uses fresh data 
+					$cache_time = intval( get_theme_mod( 'livestream_cache' ) );
 					set_transient( 'JS_livestream_JSON', $data, $cache_time * MINUTE_IN_SECONDS );
 					return $data;
 					
