@@ -2,7 +2,7 @@
 /*
 	Plugin Name: Livestream Notification Bar
 	Description: Plugin to create a notification bar at the top of your site to notify when your Livestream is live
-	Version: 1.0.0
+	Version: 1.1.1
 	Author: Justin R. Serrano
 */
 
@@ -12,6 +12,7 @@ class JS_LivestreamBar {
 	private $ls_time;
 	private $ls_data;
 	private $account_name;
+	private $debug_enabled = false;
 	
 	function __construct(){
 		// Use Custommizer to set settings
@@ -107,6 +108,36 @@ class JS_LivestreamBar {
 			'section' => 'livestream',
 		) );
 		
+		// Cache time
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_cache',
+			'label' => _x( 'Cache longevity', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'select',
+			'choices'=> array(
+				'1440' => '24 hours',
+				'720' => '12 hours',
+				'360' => '6 hours',
+				'60' => '1 hour',
+				'30' => '30 minutes',
+				'15' => '15 minutes',
+				'10' => '1 minutes',
+				'5' => '5 minutes',
+				'1' => '1 minute',
+			),
+			'description' => _x( 'Choose the longevity of the cache of the Livestream data.', 'Customizer setting description', 'js_livestream' ),
+			'default' => '60',
+			'section' => 'livestream',
+		) );
+		
+		$this->customize_createSetting( $wp_customize, array(
+			'id' => 'livestream_showupcoming',
+			'label' => _x( 'Show bar when upcoming', 'Customizer setting label', 'js_livestream' ),
+			'type' => 'checkbox',
+			'description' => _x( 'Check to display the bar and countdown when an event is scheduled, but not live yet. ', 'Customizer setting description', 'js_livestream' ),
+			'default' => true,
+			'section' => 'livestream',
+		) );
+
 	}
 	
 	function add_scripts(){
@@ -122,39 +153,24 @@ class JS_LivestreamBar {
 			$this->ls_time   = $this->ls_data[ 'start_time' ];
 			
 			// Add scripts
-			wp_enqueue_script( 'jsls-countdown', plugins_url( 'countdown.js', __FILE__ ), array( 'jquery') );
-			add_action( 'wp_footer', array( $this, 'script_footer' ) );
+			wp_enqueue_script( 'jsls-script', plugins_url( 'jsls-script.js', __FILE__ ), array( 'jquery') );
+			
+			$jsls_data = array(
+				'live'     => sprintf( '<a href="%s" class="jsls_link">' . get_theme_mod( 'livestream_livelink' ) . '</a>', $this->ls_data[ 'url' ] ),
+				'upcoming' => str_replace( '{{CLOCK}}', '<span id="jsls_clock"></span>', get_theme_mod( 'livestream_upcomingtext' ) ),
+				'streaming' => $this->ls_status,
+				'start_time' => $this->ls_time,
+				'inject' => get_theme_mod( 'livestream_inject' ),
+				'show_up' => get_theme_mod( 'livestream_showupcoming' ),
+			);
+			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
+			add_action( 'wp_footer', array( $this, 'style_footer' ) );
 		}
 	}
 	
-	function script_footer(){
-		$jsls_text = array(
-			'live'     => sprintf( '<a href="%s" class="jsls_link">' . get_theme_mod( 'livestream_livelink' ) . '</a>', $this->ls_data[ 'url' ] ),
-			'upcoming' => str_replace( '{{CLOCK}}', '<span id="jsls_clock"></span>', get_theme_mod( 'livestream_upcomingtext' ) )
-		);
-		
+	function style_footer(){
 		if( $this->ls_data ){
 			// There is a live or scheduled event
-?>
-
-			<script>
-				(function($){
-					var bar_text = '<?php echo ( $this->ls_status ? $jsls_text[ 'live' ] : $jsls_text[ 'upcoming' ] ); ?> ';
-					var streaming = <?php echo json_encode( $this->ls_status ); ?>;
-<?php if( ! $this->ls_status ): ?>
-					var start_time = '<?php echo $this->ls_time; ?>';
-<?php endif; ?>
-			
-					$( '<?php echo get_theme_mod( 'livestream_inject' ); ?>' ).prepend('<div id="jsls_bar">' + bar_text + '</div>' );
-					var jsls_bar = $( '#jsls_bar' );
-					if( ! streaming ){
-						initializeClock( 'jsls_clock' , start_time, function(){ 
-							jsls_bar.html( '<?php echo $jsls_text[ 'live' ]; ?>' ); 
-						} );
-					}
-				} ) (jQuery);
-			</script>
-<?php
 			// Add custom CSS
 			if( get_theme_mod( 'livestream_css' ) ){
 				echo '<style>' . get_theme_mod( 'livestream_css' ) . '</style>';
@@ -192,18 +208,8 @@ class JS_LivestreamBar {
 				if( json_last_error() === JSON_ERROR_NONE ){
 					// Check for valid JSON
 					
-					if( count( $data->upcoming_events->data ) > 0 || is_customize_preview() ){
-						
-						// Upcoming event, set the transient to 1 minute to capture the status change
-						// Also used if user it's the customizer preview, in case the settings are getting changed
-						set_transient( 'JS_livestream_JSON', $data, MINUTE_IN_SECONDS );
-						
-					} else {
-						
-						// No upcoming event, set the transient to 15 minutes
-						set_transient( 'JS_livestream_JSON', $data, 15 * MINUTE_IN_SECONDS );
-						
-					}
+					$cache_time = intval( get_theme_mod( 'livestream_cache' ) );
+					set_transient( 'JS_livestream_JSON', $data, $cache_time * MINUTE_IN_SECONDS );
 					return $data;
 					
 				} else {
