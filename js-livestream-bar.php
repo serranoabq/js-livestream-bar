@@ -15,7 +15,7 @@ class JS_LivestreamBar {
 	private $debug_enabled = false;
 	
 	function __construct(){
-		// Use Custommizer to set settings
+		// Use Customizer to set settings
 		add_action( 'customize_register', array( $this, 'customize_register' ), 11 );
 		$this->account_name = get_theme_mod( 'livestream_account' );
 
@@ -190,13 +190,9 @@ class JS_LivestreamBar {
 		
 		// Use transients for cache control
 		$transient = get_transient( 'JS_livestream_JSON' );
-		if( ! empty( $transient ) && ! is_customize_preview() ){
-			
-			// Use transients to avoid excessive remote calls
-			return $transient;
-			
-		} else {
-			
+		
+		if( is_customize_preview() || empty( $transient ) ) {
+
 			// Build URL and fetch data
 			$url = "http://api.new.livestream.com/accounts/$name";
 			$response = wp_remote_get( $url );
@@ -227,6 +223,11 @@ class JS_LivestreamBar {
 				return false;
 				
 			}
+		} else {
+			
+			// Use transients to avoid excessive remote calls
+			return $transient;
+			
 		}
 	}
 	

@@ -20,3 +20,4 @@ Please see [Installing Plugins](http://codex.wordpress.org/Managing_Plugins#Inst
 
 1.0   - Initial version
 1.1   - Bug fixes and streamlined
+1.1.1 - Common cache time

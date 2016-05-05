@@ -18,3 +18,4 @@ Changelog
 
 * 1.0   - Initial version
 * 1.1   - Bug fixes and streamlined
+* 1.1.1 - Common cache time
