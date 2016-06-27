@@ -2,7 +2,7 @@
 /*
 	Plugin Name: Livestream Notification Bar
 	Description: Plugin to create a notification bar at the top of your site to notify when your Livestream is live
-	Version: 1.2
+	Version: 1.2.1
 	Author: Justin R. Serrano
 */
 
@@ -164,6 +164,7 @@ class JS_LivestreamBar {
 				'start_time' => $this->ls_time,
 				'inject' => get_theme_mod( 'livestream_inject' ),
 				'show_up' => get_theme_mod( 'livestream_showupcoming' ),
+				'debug' => $this->debug_enabled,
 			);
 			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
 			add_action( 'wp_footer', array( $this, 'style_footer' ) );
