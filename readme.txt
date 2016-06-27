@@ -21,3 +21,4 @@ Please see [Installing Plugins](http://codex.wordpress.org/Managing_Plugins#Inst
 1.0   - Initial version
 1.1   - Bug fixes and streamlined
 1.1.1 - Common cache time
+1.2   - Disable cache's. Choose must upcoming event for bar. Hide the bar rather than not display it altogether when hide upcoming is selected.

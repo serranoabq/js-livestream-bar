@@ -2,7 +2,7 @@
 /*
 	Plugin Name: Livestream Notification Bar
 	Description: Plugin to create a notification bar at the top of your site to notify when your Livestream is live
-	Version: 1.1.1
+	Version: 1.2
 	Author: Justin R. Serrano
 */
 
@@ -15,7 +15,7 @@ class JS_LivestreamBar {
 	private $debug_enabled = false;
 	
 	function __construct(){
-		// Use Customizer to set settings
+		// Use Custommizer to set settings
 		add_action( 'customize_register', array( $this, 'customize_register' ), 11 );
 		$this->account_name = get_theme_mod( 'livestream_account' );
 
@@ -29,7 +29,7 @@ class JS_LivestreamBar {
 	
 	function setting_admin_notice__error() {
 		$class = 'notice notice-error';
-		$message = sprintf( __( 'The Livestream account name must be set in the <a href="%s">customizer</a>.', 'js_livestream' ), admin_url( 'customize.php?autofocus[control]=livestream_account' ) );
+		$message = sprintf( __( 'The Livestream account name must be set in the <a href="%s">Customizer</a>.', 'js_livestream' ), admin_url( 'customize.php?autofocus[control]=livestream_account' ) );
 
 		printf( '<div class="%1$s"><p>%2$s</p></div>', $class, $message ); 
 	}
@@ -48,8 +48,9 @@ class JS_LivestreamBar {
 		// Username
 		$this->customize_createSetting( $wp_customize, array(
 			'id' => 'livestream_account',
-			'label' => _x( 'Livestream username', 'Customizer setting', 'js_livestream' ),
+			'label' => _x( 'Livestream username', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'text',
+			'description' => _x( 'Enter the account username or number for the stream. Note: Only the first scheduled event is used in the bar.', 'Customizer setting description', 'js_livestream' ),
 			'default' => '',
 			'section' => 'livestream',
 		) );
@@ -73,7 +74,7 @@ class JS_LivestreamBar {
 			'id' => 'livestream_inject',
 			'label' => _x( 'DOM Element to inject into', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'text',
-			'description' => _x( 'Enter the CSS selector of the parent element the bar will be injected into (e.g. <code>body</code>, <code>#header</code>, <code>.top</code>).', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Enter the CSS selector of the parent element the notification bar will be injected into (e.g. <code>body</code>, <code>#header</code>, <code>.top</code>).', 'Customizer setting description', 'js_livestream' ),
 			'default' => 'body',
 			'section' => 'livestream',
 		) );
@@ -83,7 +84,7 @@ class JS_LivestreamBar {
 			'id' => 'livestream_livelink',
 			'label' => _x( 'Link text', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'text',
-			'description' => _x( 'Enter the text to include in the link when the event is live', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Enter the text to include in the link when the event is live Use <code>{{NAME}}</code> for the stream name.', 'Customizer setting description', 'js_livestream' ),
 			'default' => __( 'Livestream event is LIVE. Click here to watch.' , 'js_livestream' ),
 			'section' => 'livestream',
 		) );
@@ -93,7 +94,7 @@ class JS_LivestreamBar {
 			'id' => 'livestream_upcomingtext',
 			'label' => _x( 'Upcoming  text', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'text',
-			'description' => _x( 'Enter the text to include bar when the event is scheduled. <code>{{CLOCK}}</code> indicates where the countdown will be placed', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Enter the text to include bar when the event is scheduled. Use <code>{{NAME}}</code> for the stream name, and <code>{{CLOCK}}</code> for a countdown timer', 'Customizer setting description', 'js_livestream' ),
 			'default' => __( 'Livestream starts in {{CLOCK}}' , 'js_livestream' ),
 			'section' => 'livestream',
 		) );
@@ -103,7 +104,7 @@ class JS_LivestreamBar {
 			'id' => 'livestream_css',
 			'label' => _x( 'Custom CSS', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'textarea',
-			'description' => _x( 'Enter any custom CSS to apply to the notification bar. The following ids are used: <code>jsls_bar</code>, <code>jsls_link</code>, and <code>jsls_clock</code>', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Enter any custom CSS to apply to the notification bar. The following ids and classes are used: <code>#jsls_bar</code>, <code>#jsls_link</code>, <code>#jsls_clock</code>, <code>#jsls_clock.live</code>, <code>#jsls_clock.upcoming</code>. Depending on your theme, you might have to override some styles with <code>!important</code>.', 'Customizer setting description', 'js_livestream' ),
 			'default' => '',
 			'section' => 'livestream',
 		) );
@@ -111,13 +112,12 @@ class JS_LivestreamBar {
 		// Cache time
 		$this->customize_createSetting( $wp_customize, array(
 			'id' => 'livestream_cache',
-			'label' => _x( 'Cache Longevity', 'Customizer setting label', 'js_livestream' ),
+			'label' => _x( 'Cache longevity', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'select',
 			'choices'=> array(
-				'1440' => '1 day',
+				'1440' => '24 hours',
 				'720' => '12 hours',
 				'360' => '6 hours',
-				'120' => '2 hours',
 				'60' => '1 hour',
 				'30' => '30 minutes',
 				'15' => '15 minutes',
@@ -125,8 +125,8 @@ class JS_LivestreamBar {
 				'5' => '5 minutes',
 				'1' => '1 minute',
 			),
-			'description' => _x( 'Choose the longevity of the local cache of the Livestream request. Keep in mind that the shorter it is, the fresher the data.', 'Customizer setting description', 'js_livestream' ),
-			'default' => '1',
+			'description' => _x( 'Choose the longevity of the cache of the Livestream data.', 'Customizer setting description', 'js_livestream' ),
+			'default' => '60',
 			'section' => 'livestream',
 		) );
 		
@@ -134,7 +134,7 @@ class JS_LivestreamBar {
 			'id' => 'livestream_showupcoming',
 			'label' => _x( 'Show bar when upcoming', 'Customizer setting label', 'js_livestream' ),
 			'type' => 'checkbox',
-			'description' => _x( 'Check to display the bar and countdown when an event is scheduled, but not live yet. ', 'Customizer setting description', 'js_livestream' ),
+			'description' => _x( 'Check to display the notification bar when an event is scheduled, but not live yet. ', 'Customizer setting description', 'js_livestream' ),
 			'default' => true,
 			'section' => 'livestream',
 		) );
@@ -152,13 +152,14 @@ class JS_LivestreamBar {
 			// If there's valid data, proceed
 			$this->ls_status = $this->ls_data[ 'streaming' ];
 			$this->ls_time   = $this->ls_data[ 'start_time' ];
-			
+			$this->ls_name   = $this->ls_data[ 'stream_name' ];
+		
 			// Add scripts
 			wp_enqueue_script( 'jsls-script', plugins_url( 'jsls-script.js', __FILE__ ), array( 'jquery') );
 			
 			$jsls_data = array(
-				'live'     => sprintf( '<a href="%s" class="jsls_link">' . get_theme_mod( 'livestream_livelink' ) . '</a>', $this->ls_data[ 'url' ] ),
-				'upcoming' => str_replace( '{{CLOCK}}', '<span id="jsls_clock"></span>', get_theme_mod( 'livestream_upcomingtext' ) ),
+				'live'     => sprintf( '<a href="%s" id="jsls_link" target="_blank">' . str_replace( '{{NAME}}', $this->ls_name, get_theme_mod( 'livestream_livelink' ) ) . '</a>', $this->ls_data[ 'url' ] ),
+				'upcoming' => str_replace( '{{NAME}}', $this->ls_name, str_replace( '{{CLOCK}}', '<span id="jsls_clock"></span>', get_theme_mod( 'livestream_upcomingtext' ) ) ),
 				'streaming' => $this->ls_status,
 				'start_time' => $this->ls_time,
 				'inject' => get_theme_mod( 'livestream_inject' ),
@@ -166,6 +167,10 @@ class JS_LivestreamBar {
 			);
 			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
 			add_action( 'wp_footer', array( $this, 'style_footer' ) );
+			
+			
+			// Force a cache break
+			define( "DONOTCACHEPAGE", TRUE );
 		}
 	}
 	
@@ -173,9 +178,20 @@ class JS_LivestreamBar {
 		if( $this->ls_data ){
 			// There is a live or scheduled event
 			// Add custom CSS
-			if( get_theme_mod( 'livestream_css' ) ){
-				echo '<style>' . get_theme_mod( 'livestream_css' ) . '</style>';
+			$style = "
+			.jsls-hiddenbar { 
+				position: absolute; 
+				overflow: hidden; 
+				clip: rect(0 0 0 0); 
+				height: 1px; width: 1px; 
+				margin: -1px; padding: 0; border: 0; 
 			}
+			";
+			echo '<style>' . $style; 
+			if( get_theme_mod( 'livestream_css' ) ){
+				echo get_theme_mod( 'livestream_css' ); 
+			}
+			echo '</style>';
 		}
 	}
 	
@@ -183,16 +199,22 @@ class JS_LivestreamBar {
 	function fetch_livestream_data(){
 		// Get account name
 		$name = get_theme_mod( 'livestream_account' );
+		
 		if( ! $name ) {
-			$this->debug( __CLASS__ . ':' .  __FUNCTION__ . ': No account name given' ); 
+			$this->debug( __FUNCTION__ . ': No account name given' ); 
 			return false;
 		}
+		//define( 'JS_LIVESTREAM_ACCOUNT', $name );
 		
 		// Use transients for cache control
 		$transient = get_transient( 'JS_livestream_JSON' );
-		
-		if( is_customize_preview() || empty( $transient ) ) {
-
+		if( ! empty( $transient ) && ! is_customize_preview() ){
+			
+			// Use transients to avoid excessive remote calls
+			return $transient;
+			
+		} else {
+			
 			// Build URL and fetch data
 			$url = "http://api.new.livestream.com/accounts/$name";
 			$response = wp_remote_get( $url );
@@ -202,10 +224,9 @@ class JS_LivestreamBar {
 				
 				$data = json_decode( $response[ 'body' ] );    
 				
-				// Check for valid JSON
 				if( json_last_error() === JSON_ERROR_NONE ){
+					// Check for valid JSON
 					
-					// Cache the data. Note that even though it's cached, the Customizer uses fresh data 
 					$cache_time = intval( get_theme_mod( 'livestream_cache' ) );
 					set_transient( 'JS_livestream_JSON', $data, $cache_time * MINUTE_IN_SECONDS );
 					return $data;
@@ -213,21 +234,16 @@ class JS_LivestreamBar {
 				} else {
 					// Invalid JSON
 					
-					$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Invalid JSON response' );
+					$this->debug( __FUNCTION__ . ': Invalid JSON response' );
 					return false;
 				}
 			} else {
 				// Invalid response
 				
-				$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Invalid response from ' . $url ); 
+				$this->debug( __FUNCTION__ . ': Invalid response from ' . $url ); 
 				return false;
 				
 			}
-		} else {
-			
-			// Use transients to avoid excessive remote calls
-			return $transient;
-			
 		}
 	}
 	
@@ -240,22 +256,32 @@ class JS_LivestreamBar {
 		// Start parsing the data
 		if( ! $data ) return false;
 		
-		if( count( $data->upcoming_events->data ) > 0 ){
+		// Sort upcoming to put sooner first
+		$upcoming = $data->upcoming_events->data; 
+		usort( $upcoming, function( $a, $b ){
+			$ad = date_create( $a->start_time );
+			$bd = date_create( $b->start_time );
+			if( $ad == $bd ) return 0;
+			return $ad < $bd ? -1 : 1;
+		});
+		
+		if( count( $upcoming ) > 0 ){
 			// There's an upcoming event
 			
 			// Return account_id, streaming status, url, event_id, and start_time
 			$account_id = $data->id;
-			$event_id   = $data->upcoming_events->data[0]->id;
+			$event_id   = $upcoming[0]->id;
 			return array(
+				'stream_name'=> $upcoming[0]->full_name,
 				'account_id' => $account_id,
-				'streaming'  =>  $data->upcoming_events->data[0]->in_progress,
+				'streaming'  =>  $upcoming[0]->in_progress,
 				'url'        => "http://livestream.com/accounts/$account_id/events/$event_id",
 				'event_id'   => $event_id,
-				'start_time' => $data->upcoming_events->data[0]->start_time,
+				'start_time' => $upcoming[0]->start_time,
 			);
 			
 		} else {
-			$this->debug( __CLASS__ . ':' . __FUNCTION__ . ': Nothing scheduled' ); 
+			$this->debug( __FUNCTION__ . ': Nothing scheduled' ); 
 			
 			// Nothing on tap
 			return false;
@@ -362,7 +388,7 @@ class JS_LivestreamBar {
 	// Debug function
 	function debug( $msg ){
 		if( is_user_logged_in() && $this->debug_enabled ){
-			error_log( $msg );
+			error_log( __CLASS__ . ':' . $msg );
 		}
 	}
 	
