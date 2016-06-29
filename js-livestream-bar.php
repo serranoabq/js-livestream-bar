@@ -169,9 +169,6 @@ class JS_LivestreamBar {
 			wp_localize_script( 'jsls-script', 'jsls_data', $jsls_data );
 			add_action( 'wp_footer', array( $this, 'style_footer' ) );
 			
-			
-			// Force a cache break
-			define( "DONOTCACHEPAGE", TRUE );
 		}
 	}
 	
@@ -205,7 +202,6 @@ class JS_LivestreamBar {
 			$this->debug( __FUNCTION__ . ': No account name given' ); 
 			return false;
 		}
-		//define( 'JS_LIVESTREAM_ACCOUNT', $name );
 		
 		// Use transients for cache control
 		$transient = get_transient( 'JS_livestream_JSON' );
@@ -230,6 +226,10 @@ class JS_LivestreamBar {
 					
 					$cache_time = intval( get_theme_mod( 'livestream_cache' ) );
 					set_transient( 'JS_livestream_JSON', $data, $cache_time * MINUTE_IN_SECONDS );
+					
+					// Force a cache break
+					define( "DONOTCACHEPAGE", TRUE );
+					
 					return $data;
 					
 				} else {
